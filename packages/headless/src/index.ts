@@ -29,7 +29,7 @@ export {
   TaskList,
   TiptapImage,
   TiptapUnderline,
-  MarkdownExtension,
+  Markdown,
   TextStyle,
   Color,
   HighlightExtension,
@@ -40,7 +40,6 @@ export {
   Twitter,
   Mathematics,
   CharacterCount,
-  GlobalDragHandle,
   Command,
   renderItems,
   createSuggestionItems,
@@ -68,3 +67,7 @@ export {
 
 // Store and Atoms
 export { queryAtom, rangeAtom } from "./utils/atoms";
+
+// Drag Handle
+export { DragHandle } from "@tiptap/extension-drag-handle-react";
+export * from "@tiptap/extension-drag-handle";

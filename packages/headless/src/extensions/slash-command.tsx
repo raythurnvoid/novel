@@ -1,11 +1,36 @@
 import { Extension } from "@tiptap/core";
 import type { Editor, Range } from "@tiptap/core";
-import { ReactRenderer } from "@tiptap/react";
+import { ReactRenderer, posToDOMRect } from "@tiptap/react";
 import Suggestion, { type SuggestionOptions } from "@tiptap/suggestion";
 import type { RefObject } from "react";
 import type { ReactNode } from "react";
-import tippy, { type GetReferenceClientRect, type Instance, type Props } from "tippy.js";
+import * as FloatingUI from "@floating-ui/dom";
 import { EditorCommandOut } from "../components/editor-command";
+
+// Helper function to update floating UI position (following Tiptap 3 pattern)
+const updatePosition = (editor: Editor, element: HTMLElement) => {
+  const virtualElement = {
+    getBoundingClientRect: () =>
+      posToDOMRect(
+        editor.view,
+        editor.state.selection.from,
+        editor.state.selection.to,
+      ),
+  };
+
+  FloatingUI.computePosition(virtualElement, element, {
+    placement: "bottom-start",
+    strategy: "absolute",
+    middleware: [FloatingUI.offset(8), FloatingUI.flip(), FloatingUI.shift()],
+  }).then(({ x, y, strategy }) => {
+    if (element) {
+      element.style.width = "max-content";
+      element.style.position = strategy;
+      element.style.left = `${x}px`;
+      element.style.top = `${y}px`;
+    }
+  });
+};
 
 const Command = Extension.create({
   name: "slash-command",
@@ -31,7 +56,6 @@ const Command = Extension.create({
 
 const renderItems = (elementRef?: RefObject<Element> | null) => {
   let component: ReactRenderer | null = null;
-  let popup: Instance<Props>[] | null = null;
 
   return {
     onStart: (props: { editor: Editor; clientRect: DOMRect }) => {
@@ -49,37 +73,42 @@ const renderItems = (elementRef?: RefObject<Element> | null) => {
         return false;
       }
 
-      // @ts-ignore
-      popup = tippy("body", {
-        getReferenceClientRect: props.clientRect,
-        appendTo: () => (elementRef ? elementRef.current : document.body),
-        content: component.element,
-        showOnCreate: true,
-        interactive: true,
-        trigger: "manual",
-        placement: "bottom-start",
-      });
+      if (!props.clientRect) {
+        return;
+      }
+
+      component.element.style.position = "absolute";
+      component.element.id = "slash-command";
+
+      const parent = elementRef?.current || document.body;
+      parent.appendChild(component.element);
+
+      updatePosition(props.editor, component.element);
     },
-    onUpdate: (props: { editor: Editor; clientRect: GetReferenceClientRect }) => {
+
+    onUpdate: (props: { editor: Editor; clientRect: DOMRect }) => {
       component?.updateProps(props);
 
-      popup?.[0]?.setProps({
-        getReferenceClientRect: props.clientRect,
-      });
+      if (!props.clientRect || !component) {
+        return;
+      }
+
+      updatePosition(props.editor, component.element);
     },
 
     onKeyDown: (props: { event: KeyboardEvent }) => {
       if (props.event.key === "Escape") {
-        popup?.[0]?.hide();
-
+        component?.element.remove();
+        component?.destroy();
         return true;
       }
 
       // @ts-ignore
       return component?.ref?.onKeyDown(props);
     },
+
     onExit: () => {
-      popup?.[0]?.destroy();
+      component?.element.remove();
       component?.destroy();
     },
   };
