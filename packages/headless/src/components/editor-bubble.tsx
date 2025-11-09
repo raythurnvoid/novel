@@ -30,6 +30,7 @@ export const EditorBubble = forwardRef<HTMLDivElement, EditorBubbleProps>(
         // - the selection is empty
         // - the selection is a node selection (for drag handles)
         if (
+          !editor.isFocused ||
           !editor.isEditable ||
           editor.isActive("image") ||
           empty ||
