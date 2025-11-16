@@ -87,8 +87,9 @@ export function EditorBubble(props: EditorBubbleProps) {
 
   return (
     // We need to add this because of https://github.com/ueberdosis/tiptap/issues/2658
-    <div ref={ref}>
+    <div>
       <BubbleMenu
+        ref={ref}
         editor={currentEditor}
         shouldShow={novelShouldShowImpl}
         {...rest}
