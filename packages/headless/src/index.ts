@@ -57,14 +57,6 @@ export {
   handleImagePaste,
 } from "./plugins";
 
-// Utils
-export {
-  isValidUrl,
-  getUrlFromString,
-  getPrevText,
-  getAllContent,
-} from "./utils";
-
 // Store and Atoms
 export { queryAtom, rangeAtom } from "./utils/atoms";
 
