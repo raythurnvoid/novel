@@ -1,32 +1,87 @@
-import { type Editor, Mark, markInputRule, markPasteRule, mergeAttributes } from "@tiptap/core";
+import { Extension, type Command } from "@tiptap/core";
+import { Plugin, PluginKey } from "@tiptap/pm/state";
+import { Decoration, DecorationSet } from "@tiptap/pm/view";
 
-export interface AIHighlightOptions {
+export type AIHighlight_Options = {
   HTMLAttributes: Record<string, string>;
+};
+
+type AIHighlight_Meta =
+  | { type: "set"; from: number; to: number }
+  | { type: "clear" };
+
+const AI_HIGHLIGHT_PLUGIN_KEY = new PluginKey<DecorationSet>("ai-highlight");
+
+function createDecoration(from: number, to: number) {
+  return Decoration.inline(from, to, {
+    "data-ai-highlight": "true",
+  });
 }
+
+const aiHighlightPlugin = new Plugin<DecorationSet>({
+  key: AI_HIGHLIGHT_PLUGIN_KEY,
+  state: {
+    init: () => DecorationSet.empty,
+    apply(tr, old) {
+      const meta = tr.getMeta(AI_HIGHLIGHT_PLUGIN_KEY) as
+        | AIHighlight_Meta
+        | undefined;
+      const mapped = old.map(tr.mapping, tr.doc);
+
+      if (!meta) {
+        return mapped;
+      }
+
+      if (meta.type === "clear") {
+        return DecorationSet.empty;
+      }
+
+      // Helper to perform range union/diff logic on the decorations
+      const currentDecorations = mapped.find();
+      const { from, to } = meta;
+
+      // Find all decorations that touch or overlap the target range
+      const touching = currentDecorations.filter(
+        (d) => d.from <= to && d.to >= from,
+      );
+
+      // Calculate the union range of all touching decorations + new range
+      const unionFrom = Math.min(from, ...touching.map((d) => d.from));
+      const unionTo = Math.max(to, ...touching.map((d) => d.to));
+
+      const others = currentDecorations.filter((d) => !touching.includes(d));
+
+      // Only "set" remains after clear check above
+      // Merge all touching decorations into one
+      return DecorationSet.create(tr.doc, [
+        ...others,
+        createDecoration(unionFrom, unionTo),
+      ]);
+    },
+  },
+  props: {
+    decorations(state) {
+      return AI_HIGHLIGHT_PLUGIN_KEY.getState(state) ?? null;
+    },
+  },
+});
 
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
     AIHighlight: {
       /**
-       * Set a AIHighlight mark
+       * Set a AIHighlight decoration
        */
-      setAIHighlight: (attributes?: { color: string }) => ReturnType;
+      setAIHighlight: () => ReturnType;
       /**
-       * Toggle a AIHighlight mark
+       * Clear all AIHighlight decorations
        */
-      toggleAIHighlight: (attributes?: { color: string }) => ReturnType;
-      /**
-       * Unset a AIHighlight mark
-       */
-      unsetAIHighlight: () => ReturnType;
+      clearAIHighlight: () => ReturnType;
     };
   }
 }
 
-export const inputRegex = /(?:^|\s)((?:==)((?:[^~=]+))(?:==))$/;
-export const pasteRegex = /(?:^|\s)((?:==)((?:[^~=]+))(?:==))/g;
-
-export const AIHighlight = Mark.create<AIHighlightOptions>({
+export const AIHighlight = Extension.create<AIHighlight_Options>({
   name: "ai-highlight",
 
   addOptions() {
@@ -35,90 +90,49 @@ export const AIHighlight = Mark.create<AIHighlightOptions>({
     };
   },
 
-  addAttributes() {
-    return {
-      color: {
-        default: null,
-        parseHTML: (element) => element.getAttribute("data-color") || element.style.backgroundColor,
-        renderHTML: (attributes) => {
-          if (!attributes.color) {
-            return {};
-          }
-
-          return {
-            "data-color": attributes.color,
-            style: `background-color: ${attributes.color}; color: inherit`,
-          };
-        },
-      },
-    };
-  },
-
-  parseHTML() {
-    return [
-      {
-        tag: "mark",
-      },
-    ];
-  },
-
-  renderHTML({ HTMLAttributes }) {
-    return ["mark", mergeAttributes(this.options.HTMLAttributes, HTMLAttributes), 0];
+  addProseMirrorPlugins() {
+    return [aiHighlightPlugin];
   },
 
   addCommands() {
     return {
       setAIHighlight:
-        (attributes) =>
-        ({ commands }) => {
-          return commands.setMark(this.name, attributes);
-        },
-      toggleAIHighlight:
-        (attributes) =>
-        ({ commands }) => {
-          return commands.toggleMark(this.name, attributes);
-        },
-      unsetAIHighlight:
         () =>
-        ({ commands }) => {
-          return commands.unsetMark(this.name);
+        ({ state, dispatch }) => {
+          if (!dispatch) {
+            return true;
+          }
+
+          const { from, to } = state.selection;
+          if (from === to) {
+            return false;
+          }
+
+          dispatch(
+            state.tr.setMeta(AI_HIGHLIGHT_PLUGIN_KEY, {
+              type: "set",
+              from,
+              to,
+            } satisfies AIHighlight_Meta),
+          );
+
+          return true;
+        },
+      clearAIHighlight:
+        () =>
+        ({ state, dispatch }) => {
+          if (!dispatch) {
+            return true;
+          }
+
+          dispatch(
+            state.tr.setMeta(AI_HIGHLIGHT_PLUGIN_KEY, {
+              type: "clear",
+            } satisfies AIHighlight_Meta),
+          );
+
+          return true;
         },
     };
-  },
-
-  addKeyboardShortcuts() {
-    return {
-      "Mod-Shift-h": () => this.editor.commands.toggleAIHighlight(),
-    };
-  },
-
-  addInputRules() {
-    return [
-      markInputRule({
-        find: inputRegex,
-        type: this.type,
-      }),
-    ];
-  },
-
-  addPasteRules() {
-    return [
-      markPasteRule({
-        find: pasteRegex,
-        type: this.type,
-      }),
-    ];
   },
 });
-
-export const removeAIHighlight = (editor: Editor) => {
-  const tr = editor.state.tr;
-  tr.removeMark(0, editor.state.doc.nodeSize - 2, editor.state.schema.marks["ai-highlight"]);
-  editor.view.dispatch(tr);
-};
-export const addAIHighlight = (editor: Editor, color?: string) => {
-  editor
-    .chain()
-    .setAIHighlight({ color: color ?? "#c1ecf970" })
-    .run();
-};
