@@ -59,5 +59,4 @@ export {
 export { queryAtom, rangeAtom } from "./utils/atoms";
 
 // Drag Handle
-export { DragHandle } from "@tiptap/extension-drag-handle-react";
-export * from "@tiptap/extension-drag-handle";
+export * from "@tiptap/extension-drag-handle-react";
