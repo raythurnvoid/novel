@@ -12,6 +12,8 @@ export {
   useEditor,
   type EditorInstance,
   type JSONContent,
+  DragHandle as EditorDragHandle,
+  type DragHandleProps as EditorDragHandleProps,
 } from "./components";
 
 // Extensions
@@ -25,19 +27,20 @@ export {
   StarterKit,
   TaskItem,
   TaskList,
-  TiptapImage,
+  Image,
   TiptapUnderline,
   Markdown,
   TextStyle,
   Color,
   HighlightExtension,
   CustomKeymap,
-  TiptapLink,
+  Link,
   UpdatedImage,
   Youtube,
   Twitter,
   Mathematics,
   CharacterCount,
+  DragHandle,
   Command,
   renderItems,
   createSuggestionItems,
@@ -57,6 +60,3 @@ export {
 
 // Store and Atoms
 export { queryAtom, rangeAtom } from "./utils/atoms";
-
-// Drag Handle
-export * from "@tiptap/extension-drag-handle-react";

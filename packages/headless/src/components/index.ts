@@ -7,3 +7,5 @@ export { EditorBubble } from "./editor-bubble";
 export { EditorBubbleItem } from "./editor-bubble-item";
 export { EditorCommand, EditorCommandList } from "./editor-command";
 export { EditorCommandItem, EditorCommandEmpty } from "./editor-command-item";
+
+export * from "@tiptap/extension-drag-handle-react";

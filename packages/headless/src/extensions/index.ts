@@ -1,15 +1,15 @@
 import { InputRule } from "@tiptap/core";
 import { Color } from "@tiptap/extension-color";
-import Highlight from "@tiptap/extension-highlight";
-import HorizontalRule from "@tiptap/extension-horizontal-rule";
-import TiptapImage from "@tiptap/extension-image";
-import TiptapLink from "@tiptap/extension-link";
-import Placeholder from "@tiptap/extension-placeholder";
+import { Highlight } from "@tiptap/extension-highlight";
+import { HorizontalRule } from "@tiptap/extension-horizontal-rule";
+import { Image } from "@tiptap/extension-image";
+import { Link } from "@tiptap/extension-link";
+import { Placeholder } from "@tiptap/extension-placeholder";
 import { TaskItem } from "@tiptap/extension-task-item";
 import { TaskList } from "@tiptap/extension-task-list";
 import { TextStyle } from "@tiptap/extension-text-style";
 import TiptapUnderline from "@tiptap/extension-underline";
-import StarterKit from "@tiptap/starter-kit";
+import { StarterKit } from "@tiptap/starter-kit";
 import { Markdown } from "@tiptap/markdown";
 import CustomKeymap from "./custom-keymap";
 import { ImageResizer } from "./image-resizer";
@@ -17,9 +17,20 @@ import { Twitter } from "./twitter";
 import { Mathematics } from "./mathematics";
 import UpdatedImage from "./updated-image";
 
-import CharacterCount from "@tiptap/extension-character-count";
-import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
-import Youtube from "@tiptap/extension-youtube";
+import { CharacterCount } from "@tiptap/extension-character-count";
+import { CodeBlockLowlight } from "@tiptap/extension-code-block-lowlight";
+import { Youtube } from "@tiptap/extension-youtube";
+import { DragHandle as DragHandleOriginal } from "@tiptap/extension-drag-handle";
+
+// Extend DragHandle to exclude plugin registration
+// The React component will handle plugin registration, but we need the extension for commands
+const DragHandle = DragHandleOriginal.extend({
+  addProseMirrorPlugins() {
+    // Don't register the plugin here - the React component handles it
+    // This extension only provides the commands (lockDragHandle, unlockDragHandle, toggleDragHandle)
+    return [];
+  },
+});
 
 const PlaceholderExtension = Placeholder.configure({
   placeholder: ({ node }) => {
@@ -70,17 +81,18 @@ export {
   StarterKit,
   TaskItem,
   TaskList,
-  TiptapImage,
+  Image,
   TiptapUnderline,
   MarkdownExtension as Markdown,
   TextStyle,
   Color,
   HighlightExtension,
   CustomKeymap,
-  TiptapLink,
+  Link,
   UpdatedImage,
   Youtube,
   Twitter,
   Mathematics,
   CharacterCount,
+  DragHandle,
 };
