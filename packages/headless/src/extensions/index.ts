@@ -70,7 +70,7 @@ const Horizontal = HorizontalRule.extend({
   },
 });
 
-export * from "./ai-highlight";
+export * from "./decoration-highlight";
 export * from "./slash-command";
 export {
   CodeBlockLowlight,

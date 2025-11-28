@@ -18,7 +18,7 @@ export {
 
 // Extensions
 export {
-  AIHighlight,
+  DecorationHighlight,
   CodeBlockLowlight,
   HorizontalRule,
   ImageResizer,
