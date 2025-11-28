@@ -2,7 +2,7 @@ import { BubbleMenu } from "@tiptap/react/menus";
 import type { BubbleMenuPluginProps } from "@tiptap/extension-bubble-menu";
 import { isNodeSelection, useCurrentEditor } from "@tiptap/react";
 import { isTextSelection } from "@tiptap/core";
-import { useMemo, type Ref } from "react";
+import { type Ref } from "react";
 import type { ReactNode, HTMLAttributes } from "react";
 
 type Optional<T, K extends keyof T> = Pick<Partial<T>, K> & Omit<T, K>;
