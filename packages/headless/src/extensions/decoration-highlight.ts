@@ -6,9 +6,9 @@ export type DecorationHighlight_Options = {
   HTMLAttributes: Record<string, string>;
 };
 
-type DecorationHighlight_Meta =
-  | { type: "set"; from: number; to: number }
-  | { type: "clear" };
+type DecorationHighlight_Meta = Array<
+  { type: "set"; from: number; to: number } | { type: "clear" }
+>;
 
 const DECORATION_HIGHLIGHT_PLUGIN_KEY = new PluginKey<DecorationSet>(
   "decoration-highlight",
@@ -31,40 +31,45 @@ const decorationHighlightPlugin = new Plugin<DecorationSet>({
   state: {
     init: () => DecorationSet.empty,
     apply(tr, old) {
-      const meta = tr.getMeta(DECORATION_HIGHLIGHT_PLUGIN_KEY) as
+      const ops = tr.getMeta(DECORATION_HIGHLIGHT_PLUGIN_KEY) as
         | DecorationHighlight_Meta
         | undefined;
       const mapped = old.map(tr.mapping, tr.doc);
 
-      if (!meta) {
+      if (!ops) {
         return mapped;
       }
 
-      if (meta.type === "clear") {
-        return DecorationSet.empty;
+      let decorations = mapped;
+
+      for (const op of ops) {
+        if (op.type === "clear") {
+          decorations = DecorationSet.empty;
+          continue;
+        }
+
+        const currentDecorations = decorations.find();
+        const { from, to } = op;
+
+        // Find all decorations that touch or overlap the target range
+        const touching = currentDecorations.filter(
+          (d) => d.from <= to && d.to >= from,
+        );
+
+        // Calculate the union range of all touching decorations + new range
+        const unionFrom = Math.min(from, ...touching.map((d) => d.from));
+        const unionTo = Math.max(to, ...touching.map((d) => d.to));
+
+        const others = currentDecorations.filter((d) => !touching.includes(d));
+
+        // Merge all touching decorations into one
+        decorations = DecorationSet.create(tr.doc, [
+          ...others,
+          createDecoration(unionFrom, unionTo),
+        ]);
       }
 
-      // Helper to perform range union/diff logic on the decorations
-      const currentDecorations = mapped.find();
-      const { from, to } = meta;
-
-      // Find all decorations that touch or overlap the target range
-      const touching = currentDecorations.filter(
-        (d) => d.from <= to && d.to >= from,
-      );
-
-      // Calculate the union range of all touching decorations + new range
-      const unionFrom = Math.min(from, ...touching.map((d) => d.from));
-      const unionTo = Math.max(to, ...touching.map((d) => d.to));
-
-      const others = currentDecorations.filter((d) => !touching.includes(d));
-
-      // Only "set" remains after clear check above
-      // Merge all touching decorations into one
-      return DecorationSet.create(tr.doc, [
-        ...others,
-        createDecoration(unionFrom, unionTo),
-      ]);
+      return decorations;
     },
   },
   props: {
@@ -117,12 +122,18 @@ export const DecorationHighlight =
               return false;
             }
 
+            const ops: DecorationHighlight_Meta =
+              state.tr.getMeta(DECORATION_HIGHLIGHT_PLUGIN_KEY) ?? [];
+
             dispatch(
-              state.tr.setMeta(DECORATION_HIGHLIGHT_PLUGIN_KEY, {
-                type: "set",
-                from,
-                to,
-              } satisfies DecorationHighlight_Meta),
+              state.tr.setMeta(DECORATION_HIGHLIGHT_PLUGIN_KEY, [
+                ...ops,
+                {
+                  type: "set",
+                  from,
+                  to,
+                },
+              ] satisfies DecorationHighlight_Meta),
             );
 
             return true;
@@ -134,10 +145,16 @@ export const DecorationHighlight =
               return true;
             }
 
+            const ops: DecorationHighlight_Meta =
+              state.tr.getMeta(DECORATION_HIGHLIGHT_PLUGIN_KEY) ?? [];
+
             dispatch(
-              state.tr.setMeta(DECORATION_HIGHLIGHT_PLUGIN_KEY, {
-                type: "clear",
-              } satisfies DecorationHighlight_Meta),
+              state.tr.setMeta(DECORATION_HIGHLIGHT_PLUGIN_KEY, [
+                ...ops,
+                {
+                  type: "clear",
+                },
+              ] satisfies DecorationHighlight_Meta),
             );
 
             return true;
