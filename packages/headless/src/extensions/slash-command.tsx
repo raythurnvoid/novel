@@ -78,7 +78,7 @@ const renderItems = (elementRef?: RefObject<Element> | null) => {
       }
 
       component.element.style.position = "absolute";
-      component.element.id = "slash-command";
+      component.element.id = "slash-command-renderer";
 
       const parent = elementRef?.current || document.body;
       parent.appendChild(component.element);

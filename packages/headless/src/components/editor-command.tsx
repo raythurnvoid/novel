@@ -30,8 +30,14 @@ export const EditorCommandOut: FC<EditorCommandOutProps> = ({ query, range }) =>
     const navigationKeys = ["ArrowUp", "ArrowDown", "Enter"];
     const onKeyDown = (e: KeyboardEvent) => {
       if (navigationKeys.includes(e.key)) {
+        const commandRef = document.querySelector<HTMLElement>('#slash-command[cmdk-root]');
+
+        // Keep synthetic command-root events from looping back through this document listener.
+        if (commandRef?.contains(e.target as Node)) {
+          return;
+        }
+
         e.preventDefault();
-        const commandRef = document.querySelector("#slash-command");
 
         if (commandRef)
           commandRef.dispatchEvent(
