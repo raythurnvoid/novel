@@ -1,7 +1,7 @@
 import { Extension } from "@tiptap/core";
 import type { Editor, Range } from "@tiptap/core";
 import { ReactRenderer, posToDOMRect } from "@tiptap/react";
-import Suggestion, { type SuggestionOptions } from "@tiptap/suggestion";
+import Suggestion, { type SuggestionOptions, type SuggestionProps } from "@tiptap/suggestion";
 import type { RefObject } from "react";
 import type { ReactNode } from "react";
 import * as FloatingUI from "@floating-ui/dom";
@@ -36,12 +36,13 @@ const Command = Extension.create({
   name: "slash-command",
   addOptions() {
     return {
+      // `editor` is injected in addProseMirrorPlugins, so callers must not pass it.
       suggestion: {
         char: "/",
         command: ({ editor, range, props }) => {
           props.command({ editor, range });
         },
-      } as SuggestionOptions,
+      } as Omit<SuggestionOptions, "editor">,
     };
   },
   addProseMirrorPlugins() {
@@ -58,7 +59,7 @@ const renderItems = (elementRef?: RefObject<Element> | null) => {
   let component: ReactRenderer | null = null;
 
   return {
-    onStart: (props: { editor: Editor; clientRect: DOMRect }) => {
+    onStart: (props: SuggestionProps) => {
       component = new ReactRenderer(EditorCommandOut, {
         props,
         editor: props.editor,
@@ -86,7 +87,7 @@ const renderItems = (elementRef?: RefObject<Element> | null) => {
       updatePosition(props.editor, component.element);
     },
 
-    onUpdate: (props: { editor: Editor; clientRect: DOMRect }) => {
+    onUpdate: (props: SuggestionProps) => {
       component?.updateProps(props);
 
       if (!props.clientRect || !component) {
